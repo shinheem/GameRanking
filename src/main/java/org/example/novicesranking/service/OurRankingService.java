@@ -17,8 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -87,15 +86,6 @@ public class OurRankingService {
     }
 
     // 각 데이터에 순위에 따라 점수를 부여하는 메서드
-//    private <T extends OurRankingDto> void assignScores(List<T> dataList, double weight) {
-//        int maxRanking = dataList.size();
-//        for (int i = 0; i < dataList.size(); i++) {
-//            T data = dataList.get(i);
-//            // 순위에 따라 점수 부여 (1등이 가장 높은 점수)
-//            data.setScore((int) Math.round((maxRanking - i) * weight));
-//
-//        }
-//    }
     private <T extends OurRankingDto> void assignScores(List<T> dataList, double weight) {
         int maxRanking = dataList.size();
         for (int i = 0; i < dataList.size(); i++) {
@@ -313,11 +303,8 @@ public class OurRankingService {
 
     //괄호나 공백 제거 메소드
     private static String removeParentheses(String input) {
-        // 괄호 및 다른 비가시적 문자 제거
         String result = input.replaceAll("\\p{C}", "").replaceAll("\\([^)]*\\)", "").trim();
         result = result.replaceAll("\\s","");
-
-        // 텍스트 정규화 (예: 소문자로 변환)
         result = result.toLowerCase();
 
         return result;

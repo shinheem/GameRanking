@@ -30,10 +30,10 @@ public class OurRankingController {
 
     @GetMapping("/ourRanking")
     public void selectOurRanking(Model model) throws IOException {
-        List<OurRankingDto> mergedData = service.mergeScoresAndInsert(gameMeca_URL, peopleTree_URL,chart100_URL1,chart100_URL2,chart100_URL3,chart100_URL4);
+        service.mergeScoresAndInsert(gameMeca_URL, peopleTree_URL,chart100_URL1,chart100_URL2,chart100_URL3,chart100_URL4);
         List<OurRankingDto> list = service.selectOurRanking();
         model.addAttribute("list",list);
-
+            
     }
 
 
