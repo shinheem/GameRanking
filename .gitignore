@@ -1,0 +1,14 @@
+build
+.gradle
+.idea
+src/main/resources/static
+bin
+images
+docs
+out
+#eclipse
+.classpath
+.settings
+.project
+/logs/
+/fileLogs/
