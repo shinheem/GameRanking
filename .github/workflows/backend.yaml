@@ -1,0 +1,39 @@
+name: Build, Push to ECR, and Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main # 원하는 브랜치로 변경
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+            
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Amazon ECR CLI
+        id: ecr
+        run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      - name: Build Docker Image
+        run: docker build -t novices/ranking .
+
+      - name: Push Docker Image to ECR
+        run: |
+          docker tag novices/ranking:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/novices/ranking:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/novices/ranking:latest
+
+      # - name: Deploy to ECS
+      #   run: |
+      #     aws ecs update-service --cluster your-ecs-cluster-name --service your-ecs-service-name --force-new-deployment
+
+      - name: Cleanup
+        run: docker logout ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
