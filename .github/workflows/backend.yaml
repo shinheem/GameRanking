@@ -35,5 +35,23 @@ jobs:
       #   run: |
       #     aws ecs update-service --cluster your-ecs-cluster-name --service your-ecs-service-name --force-new-deployment
 
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: novices-ranking
+          image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          service: ranking
+          cluster: codenovices
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+
       - name: Cleanup
         run: docker logout ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+

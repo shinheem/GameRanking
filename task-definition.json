@@ -1,0 +1,21 @@
+{
+    "containerDefinitions":[
+      {
+        "portMappings":[
+          {
+            "hostPort": 0,
+            "containerPort":8085,
+            "protocol":"tcp"
+          }
+        ],
+        "essential":true,
+        "name":"novices-ranking",
+        "cpu": 1000,
+        "memory": 800,
+        "image":"193226483789.dkr.ecr.ap-northeast-2.amazonaws.com/novices/ranking:latest"
+      }
+    ],
+    "cpu": "512",
+    "memory": "1300",
+    "family":"novices-ranking"
+}
