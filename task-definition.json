@@ -15,7 +15,7 @@
         "image":"193226483789.dkr.ecr.ap-northeast-2.amazonaws.com/novices/ranking:latest"
       }
     ],
-    "cpu": "512",
-    "memory": "1300",
+    "cpu": "1000",
+    "memory": "800",
     "family":"novices-ranking"
 }
