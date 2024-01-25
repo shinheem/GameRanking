@@ -16,9 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.*;
-
-import java.util.stream.Collectors;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -28,9 +31,16 @@ public class OurRankingService {
     private final OurRankingMapper dao;
     private static final Logger logger = LoggerFactory.getLogger(OurRankingService.class);
 
+    // OurRanking 불러오기
     public List<OurRankingDto> selectOurRanking() throws IOException {
         return dao.selectOurRanking();
     }
+    
+    // OurRanking 삭제하기
+    public void deleteOurRanking() {
+        dao.deleteOurRanking();
+    }
+    
 
     // 게임 메카 데이터와 국민트리 데이터, 차트100 데이터를 가중치를 적용하여 합치는 메서드
     public List<OurRankingDto> mergeScoresAndInsert(String gameMeca_URL, String peopleTree_URL,
@@ -38,34 +48,89 @@ public class OurRankingService {
                                                     String chart100_URL3, String chart100_URL4) throws IOException {
         List<OurRankingDto> existingData = dao.selectOurRanking();
 
+        LocalDate localDate = LocalDate.now();
+        Date recentdate = Date.valueOf(localDate);
+        log.info("최근 날짜 : {}", recentdate);
+
         // 게임 메카 데이터 가져오기
-        List<GameMecaDto> gameMecaData = getGameMecaData(gameMeca_URL, 0.5);
+        List<GameMecaDto> gameMecaData = getGameMecaData(gameMeca_URL);
 
         // 국민트리 데이터 가져오기
-        List<PeopleTreeDto> peopleTreeData = getPeopleTreeData(peopleTree_URL, 0.3);
+        List<PeopleTreeDto> peopleTreeData = getPeopleTreeData(peopleTree_URL);
 
         // 차트100 데이터 가져오기
-        List<Chart100Dto> chart100Data = getChart100Data(chart100_URL1, chart100_URL2, chart100_URL3, chart100_URL4, 0.2);
+        List<Chart100Dto> chart100Data = getChart100Data(chart100_URL1, chart100_URL2, chart100_URL3, chart100_URL4);
 
-        // 두 데이터를 합치기
-        List<OurRankingDto> mergedData = mergeData(gameMecaData, peopleTreeData, chart100Data);
-        logger.info("머지된 데이터: {}", mergedData.size());
+        // 중복된 데이터 합치기
+        List<OurRankingDto> mergedData = mergeData(existingData, gameMecaData, peopleTreeData, chart100Data);
 
-        // 순위 매기기
-        assignRankings(mergedData, 1.0);
-        // 데이터를 테이블에 삽입
-        if (!check(existingData, mergedData)) {
-            int result = dao.insertOurRanking(mergedData);
-            logger.info("insert 확인: {}", result);
+        for (int i = 0; i < mergedData.size(); i++) {
+            mergedData.get(i).setCreateAt(recentdate);
         }
 
-        // 결과에서 상위 40개만 반환
-        return mergedData.stream().limit(40).collect(Collectors.toList());
+        // 중복된 리스트 insert 못하게하기
+        if(existingData.size() < 40) {
+            dao.insertOurRanking(mergedData);
+            log.error("기존값이 없어 insert 하였습니다.");
+        }else if (recentdate == mergedData.get(0).getCreateAt()) {
+            log.error("기존값을 불러옵니다.");
+        }else {
+            dao.deleteOurRanking();
+            dao.insertOurRanking(mergedData);
+            log.error("기존값을 삭제하고 insert 완료했습니다.");
+        }
+
+        return mergedData;
     }
 
-    //중복된 리스트 insert 못하게하기
-    private boolean check(List<OurRankingDto> existingData, List<OurRankingDto> newData) {
-        return existingData.size() == newData.size();
+    // 각데이터를 가져와서 가중치를 주고 합치는 로직
+    private <T extends OurRankingDto> List<OurRankingDto> mergeData(List<OurRankingDto> existingData,
+                                                                    List<GameMecaDto> gameMecaData,
+                                                                    List<PeopleTreeDto> peopleTreeData,
+                                                                    List<Chart100Dto> chart100Data) {
+
+        // 각 데이터에 순위에 따라 점수를 부여하고 순위를 매기는 메서드
+        assignRankings(gameMecaData, 0.5);
+        assignRankings(peopleTreeData, 0.3);
+        assignRankings(chart100Data, 0.2);
+
+
+        List<OurRankingDto> mergedData = new ArrayList<>(gameMecaData.stream().map(gameMecaDto -> {
+            OurRankingDto ourRankingDto = new OurRankingDto();
+            ourRankingDto.setGamename(gameMecaDto.getGamename());
+            ourRankingDto.setMadecompany(gameMecaDto.getMadecompany());
+            ourRankingDto.setGenre(gameMecaDto.getGenre());
+            ourRankingDto.setScore(gameMecaDto.getScore());
+            ourRankingDto.setRanking(0);
+            return ourRankingDto;
+        }).toList());
+
+        //ourRanking에 들어있는 게임메카와 피플트리 비교
+        mergedData.forEach(dto -> {
+            peopleTreeData.forEach(
+                peopleTreeDto -> {
+                    if (dto.getGamename().equals(peopleTreeDto.getGamename())) {
+                        dto.setScore(dto.getScore()+peopleTreeDto.getScore());
+                    }
+                }
+            );
+
+            //ourRanking에 들어있는 게임메카와 차트100 비교
+            chart100Data.forEach(
+                chart100Dto -> {
+                    if (dto.getGamename().equals(chart100Dto.getGamename())) {
+                        dto.setScore(dto.getScore()+chart100Dto.getScore());
+                    }
+                }
+            );
+        });
+
+        mergedData.sort(Comparator.comparingDouble(OurRankingDto::getScore).reversed());
+
+        IntStream.range(0, mergedData.size())
+                .forEach(i -> mergedData.get(i).setRanking(i + 1));
+
+        return mergedData;
     }
 
 
@@ -77,128 +142,27 @@ public class OurRankingService {
         for (int i = 0; i < dataList.size(); i++) {
             final int index = i;
             T data = dataList.get(index);
-            // 순위에 따라 점수 부여 (1등이 가장 높은 점수)
             double rawScore = (maxRanking - index) * weight;
+            log.info("본점수 : {}" , rawScore);
             double roundedScore = Math.round(rawScore * 100.0) / 100.0; // 둘째 자리까지 반올림
             data.setScore(roundedScore);
-            data.setRanking(index + 1); // 환산된 순위 매기기
+            data.setRanking(index + 1);
         }
     }
 
     // 각 데이터에 순위에 따라 점수를 부여하는 메서드
-    private <T extends OurRankingDto> void assignScores(List<T> dataList, double weight) {
+    private <T extends OurRankingDto> void assignScores(List<T> dataList) {
         int maxRanking = dataList.size();
         for (int i = 0; i < dataList.size(); i++) {
             T data = dataList.get(i);
-            // 순위에 따라 점수 부여 (1등이 가장 높은 점수)
-            double rawScore = (maxRanking - i) * weight;
-            double roundedScore = Math.round(rawScore * 100.0) / 100.0; // 둘째 자리까지 반올림
-            data.setScore(roundedScore);
-            log.info("score: {}", roundedScore);
+            double rawScore = (double) (maxRanking - i);
+            data.setScore(rawScore);
+
         }
     }
-
-    private <T extends OurRankingDto> List<OurRankingDto> mergeData(List<GameMecaDto> gameMecaData, List<PeopleTreeDto> peopleTreeData, List<Chart100Dto> chart100Data) {
-        List<OurRankingDto> mergedData = new ArrayList<>();
-
-        // 게임 메카 데이터에 점수를 매기고 내림차순으로 정렬
-        assignScores(gameMecaData, 0.5);
-        gameMecaData.sort(Comparator.comparingDouble(GameMecaDto::getScore).reversed());
-
-        // 국민트리 데이터에 점수를 매기고 내림차순으로 정렬
-        assignScores(peopleTreeData, 0.3);
-        peopleTreeData.sort(Comparator.comparingDouble(PeopleTreeDto::getScore).reversed());
-
-        // 차트100 데이터에 점수를 매기고 내림차순으로 정렬
-        assignScores(chart100Data, 0.2);
-        chart100Data.sort(Comparator.comparingDouble(Chart100Dto::getScore).reversed());
-
-        // 중복된 데이터 합치기
-        int rankingCounter = 1;
-        for (GameMecaDto gameMecaDto : gameMecaData) {
-            // 이름이 같은 국민트리 데이터 찾기
-            List<PeopleTreeDto> matchingPeopleTreeList = peopleTreeData.stream()
-                    .filter(peopleTreeDto -> removeParentheses(peopleTreeDto.getGamename()).equals(removeParentheses(gameMecaDto.getGamename())))
-                    .collect(Collectors.toList());
-
-            // 차트100 데이터 찾기
-            List<Chart100Dto> matchingChart100List = chart100Data.stream()
-                    .filter(chart100Dto -> removeParentheses(chart100Dto.getGamename()).equals(removeParentheses(gameMecaDto.getGamename())))
-                    .collect(Collectors.toList());
-
-            // 이름이 같은 경우, 중복된 데이터를 합치고 국민트리 리스트에서 제거
-            if (!matchingPeopleTreeList.isEmpty()) {
-                PeopleTreeDto matchingPeopleTree = matchingPeopleTreeList.get(0);
-                OurRankingDto mergedDto = mergeData(gameMecaDto, matchingPeopleTree, rankingCounter++);
-                mergedData.add(mergedDto);
-                peopleTreeData.remove(matchingPeopleTree);
-            } else if (!matchingChart100List.isEmpty()) {
-                Chart100Dto matchingChart100 = matchingChart100List.get(0);
-                OurRankingDto mergedDto = mergeData(gameMecaDto, matchingChart100, rankingCounter++);
-                mergedData.add(mergedDto);
-                chart100Data.remove(matchingChart100);
-            }
-        }
-
-        // 나머지 데이터 합치기
-        mergedData.addAll(mergeRemainingData(gameMecaData, rankingCounter++));
-        mergedData.addAll(mergeRemainingData(peopleTreeData, rankingCounter++));
-        mergedData.addAll(mergeRemainingData(chart100Data, rankingCounter));
-
-        return mergedData;
-    }
-
-    private <T extends OurRankingDto> OurRankingDto mergeData(GameMecaDto gameMeca, T otherData, int ranking) {
-        OurRankingDto mergedDto = new OurRankingDto();
-        mergedDto.setGamename(gameMeca.getGamename());
-        mergedDto.setScore(gameMeca.getScore() + otherData.getScore());
-        mergedDto.setMadecompany(gameMeca.getMadecompany());
-        mergedDto.setGenre(gameMeca.getGenre());
-
-        if (otherData instanceof Chart100Dto) {
-            Chart100Dto chart100Data = (Chart100Dto) otherData;
-            mergedDto.setMadecompany(""); // 또는 다른 기본값 설정
-            mergedDto.setGenre(""); // 또는 다른 기본값 설정
-            if (chart100Data != null) {
-                mergedDto.setMadecompany(chart100Data.getMadecompany());
-                mergedDto.setGenre(chart100Data.getGenre());
-            }
-        }
-
-        logger.info("게임 이름: {}, 랭킹: {}", mergedDto.getGamename(), mergedDto.getRanking());
-        mergedDto.setRanking(ranking);
-        return mergedDto;
-    }
-
-    private <T extends OurRankingDto> List<OurRankingDto> mergeRemainingData(List<T> remainingData, int initialRanking) {
-        final int[] ranking = {initialRanking};
-
-        Map<String, OurRankingDto> mergedDataMap = remainingData.stream()
-                .collect(Collectors.toMap(
-                        dto -> dto.getGamename(),
-                        dto -> dto,
-                        (dto1, dto2) -> {
-                            OurRankingDto mergedDto = new OurRankingDto();
-                            mergedDto.setGamename(dto1.getGamename());
-                            mergedDto.setScore(dto1.getScore() + dto2.getScore());
-                            mergedDto.setMadecompany(dto1.getMadecompany());
-                            mergedDto.setGenre(dto1.getGenre());
-                            mergedDto.setRanking(ranking[0]++);
-                            return mergedDto;
-                        },
-                        LinkedHashMap::new
-                ));
-
-        return new ArrayList<>(mergedDataMap.values());
-    }
-
-
-
-
-
 
     // 메카 게임 데이터 가져오는 메소드
-    private List<GameMecaDto> getGameMecaData(String gameMeca_URL, double weight) throws IOException {
+    private List<GameMecaDto> getGameMecaData(String gameMeca_URL) throws IOException {
         Document doc = Jsoup.connect(gameMeca_URL).get();
         Elements contents = doc.getElementsByAttributeValue("class", "ranking-table-rows");
 
@@ -223,14 +187,14 @@ public class OurRankingService {
         }
 
         // 점수 부여
-        assignScores(list, weight);
+        assignScores(list);
 
         return list;
     }
 
 
     // 국민트리 데이터 가져오는 메소드
-    private List<PeopleTreeDto> getPeopleTreeData(String peopletree_url, double weight) throws IOException {
+    private List<PeopleTreeDto> getPeopleTreeData(String peopletree_url) throws IOException {
         Document doc = Jsoup.connect(peopletree_url).get();
         Elements contents = doc.select("#rankO tr.ranking-table-rows");
         int listcount = 0;
@@ -261,13 +225,13 @@ public class OurRankingService {
         }
 
         // 점수 부여
-        assignScores(list, weight);
+        assignScores(list);
 
         return list;
     }
-    
+
     //차트100 데이터 가져오는 메소드
-    private List<Chart100Dto> getChart100Data(String chart100_URL1, String chart100_URL2, String chart100_URL3, String chart100_URL4, double weight) throws IOException {
+    private List<Chart100Dto> getChart100Data(String chart100_URL1, String chart100_URL2, String chart100_URL3, String chart100_URL4) throws IOException {
         List<Chart100Dto> list = new ArrayList<>();
 
         processPage(chart100_URL1, list);
@@ -276,7 +240,7 @@ public class OurRankingService {
         processPage(chart100_URL4, list);
 
         // 점수 부여
-        assignScores(list, weight);
+        assignScores(list);
         return list;
     }
 
@@ -300,17 +264,21 @@ public class OurRankingService {
         }
     }
 
-
     //괄호나 공백 제거 메소드
     private static String removeParentheses(String input) {
-        String result = input.replaceAll("\\p{C}", "").replaceAll("\\([^)]*\\)", "").trim();
-        result = result.replaceAll("\\s","");
-        result = result.toLowerCase();
+        final String removeStr = "플레이어언노운스";
 
-        return result;
+        // 문자열 제거 및 정리
+        String result = input.replaceAll("\\p{C}", "").replaceAll("\\([^)]*\\)", "").trim().replaceAll("\\s", "");
+
+        // 특정 단어 제거
+        int remove = result.indexOf(removeStr);
+        if (remove != -1) {
+            result = new StringBuilder(result).delete(remove, remove + removeStr.length()).toString();
+        }
+
+        return result.toLowerCase();
     }
-
-
 
 
 

@@ -4,17 +4,23 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.example.novicesranking.dao.OurRankingMapper">
     <insert id="insertOurRanking" parameterType="java.util.List">
-        INSERT INTO OURRANKING (ranking, gamename, madecompany, genre, score) VALUES
+        INSERT INTO OURRANKING (ranking, gamename, madecompany, genre, score, createAt) VALUES
         <foreach collection="list" item="item" separator="," >
             (
             #{item.ranking},
             #{item.gamename},
             #{item.madecompany},
             #{item.genre},
-            #{item.score}
+            #{item.score},
+            #{item.createAt}
             )
         </foreach>
     </insert>
+
+    <delete id="deleteOurRanking">
+        DELETE FROM OURRANKING
+    </delete>
+
 
     <select id="selectOurRanking" resultType="OurRankingDto">
         select * from OURRANKING order by ranking

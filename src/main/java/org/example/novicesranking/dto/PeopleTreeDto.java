@@ -1,15 +1,13 @@
 package org.example.novicesranking.dto;
 
-import lombok.Builder;
-import lombok.Getter;
-
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @Builder
 @Setter
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class PeopleTreeDto extends OurRankingDto{
     private int ranking;    //순위
     private String gamename;    //게임명
