@@ -12,7 +12,7 @@ COPY . /app
 WORKDIR /app
 
 # Gradle 빌드 수행
-#chmod +x ./gradlew
+RUN chmod +x ./gradlew
 RUN ./gradlew clean build
 
 # 애플리케이션 실행 (실행 스크립트에 따라 수정 가능)
