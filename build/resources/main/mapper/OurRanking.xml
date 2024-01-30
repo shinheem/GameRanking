@@ -26,4 +26,52 @@
         select * from OURRANKING order by ranking
     </select>
 
+    <select id="getOurRankingRPG" resultType="OurRankingDto">
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY score DESC) as ranking,
+            gamename,
+            madecompany,
+            genre,
+            score
+        FROM OURRANKING
+        WHERE genre like 'MMORPG'
+        ORDER BY score DESC
+
+    </select>
+
+    <select id="getOurRankingAction" resultType="OurRankingDto">
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY score DESC) as ranking,
+            gamename,
+            madecompany,
+            genre,
+            score
+        FROM OURRANKING
+        WHERE genre like '액션%'
+        ORDER BY score DESC
+    </select>
+
+    <select id="getOurRankingFps" resultType="OurRankingDto">
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY score DESC) as ranking,
+            gamename,
+            madecompany,
+            genre,
+            score
+        FROM OURRANKING
+        WHERE genre like 'FPS'
+        ORDER BY score DESC
+    </select>
+
+    <select id="getOurRankingEtc" resultType="OurRankingDto">
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY score DESC) as ranking,
+            gamename,
+            madecompany,
+            genre,
+            score
+        FROM OURRANKING
+        WHERE genre NOT LIKE 'MMORPG%' AND genre NOT LIKE '액션%' AND genre NOT LIKE 'FPS'
+        ORDER BY score DESC;
+    </select>
 </mapper>

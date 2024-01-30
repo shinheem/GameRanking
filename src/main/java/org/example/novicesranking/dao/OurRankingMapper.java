@@ -8,11 +8,17 @@ import java.util.List;
 @Mapper
 public interface OurRankingMapper {
 
-    //OurRanking db insert
-    public int insertOurRanking(@Param("list") List<OurRankingDto> dto);
+    //insert
+    int insertOurRanking(@Param("list") List<OurRankingDto> dto);
 
-    public void deleteOurRanking();
-    //OurRankings 순위 리스트
-    public List<OurRankingDto> selectOurRanking();
+    // delete
+    void deleteOurRanking();
+
+    //OurRankings 전체순위 리스트
+    List<OurRankingDto> selectOurRanking();     //전체
+    List<OurRankingDto> getOurRankingRPG();     //RPG
+    List<OurRankingDto> getOurRankingAction();  //액션
+    List<OurRankingDto> getOurRankingFps();     //FPS
+    List<OurRankingDto> getOurRankingEtc();     //기타
 
 }

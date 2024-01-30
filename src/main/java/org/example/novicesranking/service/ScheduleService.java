@@ -23,7 +23,8 @@ public class ScheduleService {
     private static String chart100_URL3 = "http://www.gamechart100.com/bbs/board.php?bo_table=B11&page=3";
     private static String chart100_URL4 = "http://www.gamechart100.com/bbs/board.php?bo_table=B11&page=4";
 
-    @Scheduled(cron = "0 0/3 * * * *")
+    //매주 수요일 자정 업데이트
+    @Scheduled(cron = "* 0 0 * * 3")
     public void updateOurRanking() {
         try {
         service.mergeScoresAndInsert(gameMeca_URL, peopleTree_URL,chart100_URL1,chart100_URL2,chart100_URL3,chart100_URL4);
