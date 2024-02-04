@@ -36,29 +36,8 @@ public class OurRankingService {
         return dao.selectOurRanking();
     }
 
-    // RPG 랭킹 불러오기
-    public List<OurRankingDto> selectOurRankingRPG() throws IOException {
-        return dao.getOurRankingRPG();
-    }
-
-    // 액션 랭킹 불러오기
-    public List<OurRankingDto> selectOurRankingAction() throws IOException {
-        return dao.getOurRankingAction();
-    }
-
-    // FPS 랭킹 불러오기
-    public List<OurRankingDto> selectOurRankingFps() throws IOException {
-        return dao.getOurRankingFps();
-    }
-
-    // 기타 랭킹 불러오기
-    public List<OurRankingDto> selectOurRankingEtc() throws IOException {
-        return dao.getOurRankingEtc();
-    }
-    
-    // OurRanking 삭제하기
-    public void deleteOurRanking() {
-        dao.deleteOurRanking();
+    public List<OurRankingDto> selectOurRankingByCategory(String category) {
+        return dao.selectOurRankingByCategory(category);
     }
     
 

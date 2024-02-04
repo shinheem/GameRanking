@@ -16,9 +16,6 @@ public interface OurRankingMapper {
 
     //OurRankings 전체순위 리스트
     List<OurRankingDto> selectOurRanking();     //전체
-    List<OurRankingDto> getOurRankingRPG();     //RPG
-    List<OurRankingDto> getOurRankingAction();  //액션
-    List<OurRankingDto> getOurRankingFps();     //FPS
-    List<OurRankingDto> getOurRankingEtc();     //기타
+    List<OurRankingDto> selectOurRankingByCategory(String category); //카테고리에 따른 리스트
 
 }
