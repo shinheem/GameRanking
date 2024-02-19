@@ -31,13 +31,40 @@ public class OurRankingService {
     private final OurRankingMapper dao;
     private static final Logger logger = LoggerFactory.getLogger(OurRankingService.class);
 
+
+    // 장르에 따른 랭킹 데이터 가져오기
+    public List<OurRankingDto> selectOurRankingByGenre(String genre) {
+        return dao.selectOurRankingByGenre(genre);
+    }
+
     // OurRanking 불러오기
     public List<OurRankingDto> selectOurRanking() throws IOException {
         return dao.selectOurRanking();
     }
 
-    public List<OurRankingDto> selectOurRankingByCategory(String category) {
-        return dao.selectOurRankingByCategory(category);
+    // RPG 랭킹 불러오기
+    public List<OurRankingDto> selectOurRankingRPG() throws IOException {
+        return dao.getOurRankingRPG();
+    }
+
+    // 액션 랭킹 불러오기
+    public List<OurRankingDto> selectOurRankingAction() throws IOException {
+        return dao.getOurRankingAction();
+    }
+
+    // FPS 랭킹 불러오기
+    public List<OurRankingDto> selectOurRankingFps() throws IOException {
+        return dao.getOurRankingFps();
+    }
+
+    // 기타 랭킹 불러오기
+    public List<OurRankingDto> selectOurRankingEtc() throws IOException {
+        return dao.getOurRankingEtc();
+    }
+
+    // OurRanking 삭제하기
+    public void deleteOurRanking() {
+        dao.deleteOurRanking();
     }
     
 
